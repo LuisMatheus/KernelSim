@@ -1,5 +1,8 @@
 #include <iostream>
 #include <list>
+#include <thread>
+
+using namespace std;
 
 struct process{
     unsigned int id;
@@ -9,24 +12,43 @@ struct process{
     unsigned int remaningTime;
 };
 
+class CPU {
+public:
+    int coreNumber;
+
+    CPU(unsigned int corenumber) {
+        this->coreNumber = coreNumber;
+    }
+
+    void core(int coreId, int processId) {
+
+    }
+
+};
+
 class kernel
 {
 public:
-    
     void run() {}
-    void createProcess() {};
-    void killProcess() {};
-    void runProcess() {};
-    //cpu: classe que representa a CPU e seus cores de processamento.
-    void CPU() {};
+
+    kernel(CPU* cpu) {
+        this->cpu = cpu;
+    };
 
 private:
-    std::list<process> pct;
+    CPU* cpu;
+    list<process>* pct = new list<process>;
 };
 
 class scheduler {
 public:
+    list<process>* pct = new list<process>;
+    CPU* cpu;
 
+    scheduler(list<process>* pct, CPU* cpu) {
+        this->pct = pct;
+        this->cpu = cpu;
+    }
 
 private:
 
@@ -36,22 +58,62 @@ private:
 class simulator {
 public:
 
-    void run() {};
-    void createRandomProcess() {};
-    void batchProcessInit() {};
+    void run() {
+        while (true){
 
+
+
+
+        }
+    };
+
+    simulator(unsigned int scheduler, unsigned int processInit, unsigned int quantum, unsigned int coreNumber) {
+        this->scheduler = scheduler;
+        this->processInit = processInit;
+        this->quantum = quantum;
+        this->coreNumber = coreNumber;
+    }
 
 private:
-    kernel ker = kernel();
-
+    unsigned int scheduler = 0;
+    unsigned int processInit = 0;
     // 1 ~ 64
     unsigned int coreNumber = 0;
-
     // 2 ~ 20
     unsigned int quantum = 0;
+
+    CPU* cpu = new CPU(coreNumber);
+    kernel ker = kernel(cpu);
+
+
+    void createRandomProcess() {};
+    void batchProcessInit() {};
+    void schedulingAlgorithm() {};
+
 };
 
 
 int main(){
-    std::cout << "Hello World!\n";
+    cout << "SELECIONE O ALGORITMO: 1 - FIFO // 2 - Shortest First // 3 - Round Robin" << "\n";
+    unsigned int scheduler = 0;
+    cin >> scheduler;
+
+    cout << "QUANTIDADE INICIAL DE PROCESSOS: ";
+    unsigned int processInit = 0;
+    cin >> processInit;
+
+    cout << "SELECIONE O QUANTUM: ";
+    unsigned int quantum = 0;
+    cin >> quantum;
+
+    cout << "SELECIONE A QUANTIDADE DE NUCLEOS DO PROCESSADOR: ";
+    unsigned int coreNumber = 0;
+    cin >> coreNumber;
+
+    cout << "inicializando Simulacao" << "\n" << "========================================================" << "\n";
+    simulator sim = simulator(scheduler, processInit, quantum, coreNumber );
+    sim.run();
+
+
+    return 0;
 }
