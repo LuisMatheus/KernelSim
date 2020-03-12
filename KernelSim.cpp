@@ -10,6 +10,21 @@ struct process{
     // 0: READY , 1: RUNNING , -1: TERMINATED
     int state;
     unsigned int remaningTime;
+    process(int id, int time) {
+        this->id = id;
+        this->totalTime = time;
+        this->remaningTime = this->totalTime;
+        this->state = 0;
+    }
+
+};
+
+class core {
+    process* p;
+    int id;
+    core(int id) {
+        this->id = id;
+    }
 };
 
 class CPU {
@@ -83,6 +98,7 @@ private:
     unsigned int quantum = 0;
 
     CPU* cpu = new CPU(coreNumber);
+    thread cpuInstace(CPU(coreNumber));
     kernel ker = kernel(cpu);
 
 

@@ -1,60 +1,76 @@
-// thread example
-#include <iostream>       // std::cout
-#include <thread>         // std::thread
+#include <iostream>
+#include <thread>
 #include <vector>
 
 using namespace std;
 
+class process {
+public:
+    int id;
+    int timeTotal;
+    int timeRemaning;
+   process(int id, int time) {
+        this->id = id;
+        this->timeTotal = time;
+        this->timeRemaning = this->timeTotal;
+    }
+};
+
 class core {
 public:
     int id;
-    int time;
-    bool alive = true;
-    core(int id, int time) {
+    process* p = NULL;
+    core(int id) {
         this->id = id;
-        this->id = time;
-
-        while (alive){
-            time--;
-            cout << "current Time: " << time << endl;
-            this_thread::sleep_for(chrono::seconds(2));
-
-            if (time == 0)
-                alive = false;
-        }
     }
+
+    void processTask() {
+        this->p->timeRemaning--;
+        cout << "CORE: " << id << "Time Remaning: " << p->timeRemaning << endl;
+        this_thread::sleep_for(chrono::seconds(1));
+    }
+    
 };
     
 
 class CPU {
 public:
-    vector<thread>* cores = new vector<thread>;
     vector<core> c1;
+    int coreNumber;
 
-private:
-    void init() {
-        for (size_t i = 0; i < 3; i++)
+    CPU(int coreNumber) {
+        this->coreNumber = coreNumber;
+        for (size_t i = 0; i < this->coreNumber; i++)
         {
-            c1.emplace_back(new core(i, i+10));
-        }
-
-
-        for (size_t i = 0; i < c1.size(); i++){
-            cores->emplace_back(move(c1[i]));
+            c1.emplace_back(i);
         }
     }
+
+    void processTask() {
+
+        for (core c : c1) {
+            c.processTask();
+        }
+              
+    }
+private:
+   
 };
 
 
 
 int main(){
 
-    CPU c = CPU();
-
-
-    //std::thread second(&CPU::core, c);
-
-    //second.join();
+    CPU c = CPU(2);
+    vector<process*> cpt;
+    cpt.emplace_back(new process(0, 15));
+    cpt.emplace_back(new process(1, 12));
+    c.c1.at(0).p = cpt.at(0);
+    c.c1.at(1).p = cpt.at(1);
+    c.processTask();
+    //thread cpuT(&c);
+    //thread th1(&CPU::processTask,&c);
+    //th1.join();
 
     return 0;
 }
