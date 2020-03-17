@@ -32,6 +32,7 @@ class core {
 public:
     process* p;
     int id;
+    bool alive = false;
     core(int id) {
         this->id = id;
     }
@@ -53,22 +54,17 @@ public:
     void run() {
         while (true){
             for (core* c : corePool) {
-                //cout << "calling core : " << c->id << endl;
-                if (c->p == NULL) {
-                    continue;
-                }
-                if (c->p->state == TERMINATED ) {
-                    continue;
+                if (c->alive) {
+                    if (c->p->remaningTime == 0) {
+                        c->p->state = TERMINATED;
+                        c->alive = false;
+                        cout << "CORE: " << c->id << " TERMINATED PROCESS: " << c->p->id << "/// NOW IDLE" << endl;
+                        continue;
 
-                }if (c->p->remaningTime == 0) {
-                    c->p->state = TERMINATED;
-                    cout << "CORE: " << c->id << " TERMINATED PROCESS: " << c->p->id << "/// NOW IDLE" << endl;
-                    continue;
-
+                    }
+                    c->p->remaningTime--;
+                    cout << "CORE: " << c->id << " TEMPO RESTANTE: " << c->p->remaningTime << endl;
                 }
-                c->p->remaningTime--;
-                cout << "CORE: " << c->id << " TEMPO RESTANTE: " << c->p->remaningTime << endl;
-                
                 this_thread::sleep_for(chrono::seconds(1));
             }
         }
@@ -116,11 +112,98 @@ public:
 class scheduler {
 public:
     vector<process*>* pct;
+    vector<int> readyQueue;
     CPU* cpu;
+    vector<core*> corePool;
+    int schedul = 0;
 
-    scheduler() {}
+    scheduler(vector<process*>* pct, CPU* cpu, int schedul) {
+        this->cpu = cpu;
+        this->pct = pct;
+        this->schedul = schedul;
+        this->corePool = cpu->corePool;
+    }
 
-    void
+    void setScheduleAlgoritihim() {
+        switch (schedul) {
+        case 0:
+            algorithmFIFO();
+            break;
+        case 1:
+            algorithmShortestFirst();
+            break;
+        case 2:
+            algorithmRoundRobin();
+            break;
+        default:
+            break;
+        }
+    }
+
+    void scheduleProcess(core* c, process* p) {
+        m.lock();
+        c->p = p;
+        m.unlock();
+    }
+
+    process* descheduleProcess(core* c) {
+        process* p1 = c->p;
+        c->p = nullptr;
+        c->alive = false;
+        return p1;
+    }
+
+    void insertProcess(int pos, process* p) {
+
+    }
+
+    void run() {
+        setScheduleAlgoritihim();
+    }
+
+    void algorithmFIFO() {
+        /*
+        if (pct->size() > readyQueue.size()) {
+            for (int i = readyQueue.size(); i < pct->size(); i++) {
+                process* p = pct->at(i);
+                readyQueue.emplace_back(p->id);
+            }
+        }
+        */
+        while (true) {
+
+            for (core* c : corePool) {
+                if (c->p->state == TERMINATED) {
+                    descheduleProcess(c);
+                    //delete c.p.id do pct
+                    process* pro = nullptr;
+                    for (process* p : *pct) {
+                        if (p->id == readyQueue.front()) {
+                            pro = p;
+                        }
+                    }
+                    scheduleProcess(c, pro);
+                    readyQueue.erase(readyQueue.cbegin());
+                }
+            }
+
+        }
+
+    }
+
+
+    void algorithmShortestFirst() {
+        while (true) {
+
+        }
+    }
+
+    void algorithmRoundRobin() {
+        while (true) {
+
+        }
+    }
+
 
 };
 
@@ -138,11 +221,9 @@ public:
         thread cput(&CPU::run, cpu);
         this_thread::sleep_for(chrono::seconds(2));
         thread kert(&kernel::run, ker);
-        thread crpt(&simulator::createRandomProcess, this);
-
+        while (true) { createRandomProcess(); };
         kert.join();
         cput.join();
-        crpt.join();
         
     };
 
