@@ -78,7 +78,7 @@ public:
 
                 }
                 c->p->remaningTime--;
-                cout << "CORE: " << c->id << " ID PROCESSO: " << c->p->id << " TEMPO RESTANTE: " << c->p->remaningTime << endl;
+                cout << "CORE: " << c->id << " PROCESSO: " << c->p->id << " TEMPO RESTANTE: " << c->p->remaningTime << endl;
                 m.unlock();
                 this_thread::sleep_for(chrono::seconds(1));
             }
@@ -281,9 +281,9 @@ public:
                     pct->erase(pct->cbegin());
                 }
                 m.unlock();
-
+                this_thread::sleep_for(chrono::milliseconds(500));
             }
-            this_thread::sleep_for(chrono::milliseconds(500));
+            
 
         }
     }
@@ -397,9 +397,13 @@ int main() {
     unsigned int processInit = 15;
     cin >> processInit;
 
-    cout << "SELECIONE O QUANTUM: ";
-    unsigned int quantum = 2;
-    cin >> quantum;
+    unsigned int quantum = 0;
+    if (scheduler == 3) {
+        cout << "SELECIONE O QUANTUM: ";
+        cin >> quantum;
+    }
+    
+    
 
     cout << "SELECIONE A QUANTIDADE DE NUCLEOS DO PROCESSADOR: ";
     unsigned int coreNumber = 5;
