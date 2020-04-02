@@ -72,7 +72,7 @@ public:
                 }
                 if (c->p->remaningTime == 0) {
                     c->p->state = TERMINATED;
-                    cout << "CORE: " << c->id << " TERMINATED PROCESS: " << c->p->id << " /// NOW IDLE" << endl;
+                    cout << "CORE: " << c->id << " PROCESSO ENCERRADO: " << c->p->id << endl;
                     m.unlock();
                     continue;
 
@@ -80,8 +80,10 @@ public:
                 c->p->remaningTime--;
                 cout << "CORE: " << c->id << " PROCESSO: " << c->p->id << " TEMPO RESTANTE: " << c->p->remaningTime << endl;
                 m.unlock();
-                this_thread::sleep_for(chrono::seconds(1));
+            
             }
+            cout << endl;
+            this_thread::sleep_for(chrono::seconds(1));
         }
 
     }
@@ -92,19 +94,19 @@ public:
 class scheduler {
 private:
 
-    vector<process*>* pct;
-    vector<unsigned int> readyQueue;
+    vector<process*>* readyQueue;
     vector<core*>* corePool;
     unsigned int schedul;
     unsigned int quantum;
+    
 
 public:
 
     scheduler() {}
 
-    scheduler(vector<process*>* pct, vector<core*>* corePool, unsigned int schedul, unsigned quantum) {
+    scheduler(vector<process*>* readyQueue, vector<core*>* corePool, unsigned int schedul, unsigned quantum) {
+        this->readyQueue = readyQueue;
         this->corePool = corePool;
-        this->pct = pct;
         this->schedul = schedul;
         this->quantum = quantum;
     }
@@ -128,7 +130,7 @@ public:
         return false;
     }
 
-    void scheduleProcess(core* c, process* p) {
+    void scheduleProcess(process* p, core* c) {
         c->p = p;
     }
 
@@ -138,8 +140,12 @@ public:
         return p1;
     }
 
-    void insertProcess(int pos, int id) {
-        readyQueue.insert((readyQueue.cbegin()) + pos, id);
+    void insertProcess(unsigned int pos, process* p) {
+        readyQueue->insert(readyQueue->cbegin() + pos, p);
+    }
+
+    void removeProcess(unsigned int pos) {
+        readyQueue->erase(readyQueue->cbegin() + pos);
     }
 
     void run() {
@@ -166,26 +172,17 @@ public:
 
         while (true) {
 
-            if (pct->size() > readyQueue.size()) {
-                m.lock();
-                for (int i = readyQueue.size(); i < pct->size(); i++) {
-                    process* p = pct->at(i);
-                    insertProcess(readyQueue.size(), p->id);
-                }
-                m.unlock();
-            }
-
             for (core* c : *corePool) {
-                if (c->p->state == TERMINATED && readyQueue.empty() == false) {
+                if (c->p->state == TERMINATED && readyQueue->empty() == false) {
                     m.lock();
+
                     descheduleProcess(c);
-                    scheduleProcess(c, pct->front());
-                    readyQueue.erase(readyQueue.cbegin());
-                    pct->erase(pct->cbegin());
+                    scheduleProcess(readyQueue->front(), c);
+                    removeProcess(0);
+
                     m.unlock();
                 }
             }
-
             this_thread::sleep_for(chrono::milliseconds(500));
         }
 
@@ -193,59 +190,43 @@ public:
 
     void algorithmShortestFirst() {
 
-        int* maiorId = new int (0);
-        int* maiorTime = new int (0);
-
-        for (int i = 0; i < pct->size(); i++) {
-            if (pct->at(i)->totalTime > *maiorTime) {
-                *maiorId = pct->at(i)->id;
-                *maiorTime = pct->at(i)->totalTime;
-            }
-        }
-
-        insertProcess(0, *maiorId);
-
-        delete maiorId;
-        delete maiorTime;
-
+        unsigned int menorProc = UINT_MAX;
+        unsigned int indexProc = 0;
         while (true) {
-            if (pct->size() > readyQueue.size()) {
-                m.lock();
-                for (int i = readyQueue.size() - 1; i < pct->size(); i++) {
-                    for (int j = 0; j < readyQueue.size(); j++) {
-                        if (searchFromId(readyQueue.at(j), pct)->totalTime > pct->at(i)->totalTime && isOnList(pct->at(i)->id, readyQueue) == false) {
-                            insertProcess(j, pct->at(i)->id);
-                            break;
-                        }
-                    }
-                }
-                m.unlock();
-            }
 
             for (core* c : *corePool) {
-                if (c->p->state == TERMINATED && readyQueue.empty() == false) {
+                if (c->p->state == TERMINATED && readyQueue->empty() == false) {
                     m.lock();
                     descheduleProcess(c);
-                    for (unsigned int i = 0; i < pct->size(); i++) {
-                        if (pct->at(i)->id == readyQueue.front()) {
-                            scheduleProcess(c, pct->at(i));
-                            readyQueue.erase(readyQueue.cbegin());
-                            pct->erase(pct->cbegin() + i);
-                            break;
+
+                    for (unsigned int i = 0; i < readyQueue->size(); i++) {
+                        if (readyQueue->at(i)->totalTime < menorProc) {
+                            menorProc = readyQueue->at(i)->totalTime;
+                            indexProc = i;
                         }
                     }
+
+                    
+                    scheduleProcess(readyQueue->at(indexProc),c);
+                    removeProcess(indexProc);
+
+                    menorProc = UINT_MAX;
+                    indexProc = 0;
+
                     m.unlock();
                 }
 
             }
 
             this_thread::sleep_for(chrono::milliseconds(500));
-
+          
         }
+        
     }
 
     void algorithmRoundRobin() {
 
+        
         vector<int> coreAux;
         for (int i = 0; i < corePool->size(); i++)
         {
@@ -253,32 +234,24 @@ public:
         }
         
         while (true) {
-            if (pct->size() > readyQueue.size()) {
-                m.lock();
-                for (int i = readyQueue.size(); i < pct->size(); i++) {
-                    process* p = pct->at(i);
-                    insertProcess(readyQueue.size(), p->id);
-                }
-                m.unlock();
-            }
 
             for (core* c : *corePool) {
                 m.lock();
-                if (c->p->state == TERMINATED && readyQueue.empty() == false) {
+                if (c->p->state == TERMINATED && readyQueue->empty() == false) {
+
                     descheduleProcess(c);
-                    coreAux.at(c->id) = pct->front()->remaningTime;
-                    scheduleProcess(c, pct->front());
-                    readyQueue.erase(readyQueue.cbegin());
-                    pct->erase(pct->cbegin()); 
-                }else if (coreAux.at(c->id) - quantum >= c->p->remaningTime && readyQueue.empty() == false) {
+                    coreAux.at(c->id) = readyQueue->front()->remaningTime;
+                    scheduleProcess(readyQueue->front(), c);
+                    removeProcess(0);
+
+                }else if (coreAux.at(c->id) - quantum >= c->p->remaningTime && readyQueue->empty() == false) {
+
                     process* p = descheduleProcess(c);
-                    pct->emplace_back(p);
-                    insertProcess(readyQueue.size(),p->id);
-                    cout << "QUANTUM SWAP" << endl;
-                    coreAux.at(c->id) = pct->front()->remaningTime;
-                    scheduleProcess(c, pct->front());
-                    readyQueue.erase(readyQueue.cbegin());
-                    pct->erase(pct->cbegin());
+                    insertProcess(readyQueue->size(),p);
+                    coreAux.at(c->id) = readyQueue->front()->remaningTime;
+                    scheduleProcess(readyQueue->front(), c);
+                    removeProcess(0);
+
                 }
                 m.unlock();
                 this_thread::sleep_for(chrono::milliseconds(500));
@@ -286,6 +259,7 @@ public:
             
 
         }
+        
     }
 
 };
@@ -293,31 +267,47 @@ public:
 class kernel {
 private:
 
-    vector<process*>* pct;
     CPU* cpu;
     scheduler schd;
     unsigned int sched;
     unsigned int quantum;
-
+    
 public:
-    kernel(CPU* cpu, vector<process*>* pct, unsigned  int sched, unsigned quantum) {
+    vector<process*> pct;
+
+
+    kernel(CPU* cpu, unsigned  int sched, unsigned quantum) {
         this->cpu = cpu;
-        this->pct = pct;
         this->sched = sched;
         this->quantum = quantum;
-        schd = scheduler(pct, &cpu->corePool, sched, quantum);
+        schd = scheduler(&pct, &cpu->corePool, sched, quantum);
     };
 
     void run() {
         thread schThread(&scheduler::run, schd);
-        while (true) {this_thread::sleep_for(chrono::milliseconds(500));}
+        while (true) {
+            for (int i = 0; i < pct.size() ; i++){
+                if (pct.at(i)->state == TERMINATED) {
+                    m.lock();
+                    killProcess(i);
+                    m.unlock();
+                }
+            }
+            this_thread::sleep_for(chrono::milliseconds(500));
+        }
         schThread.join();
     }
 
-    void addProcess(vector<process*> pct1) {
-        pct1.emplace_back(new process(id, rand() % 15));
+    void killProcess(int pos) {
+        pct.erase(pct.cbegin() + pos);
+    }
+
+    void createProcess() {
+        pct.emplace_back(new process(id, rand() % 30 + 1));
         id++;
     }
+
+
 };
 
 class simulator {
@@ -331,7 +321,6 @@ private:
     unsigned int processInit = 0;
     CPU cpu;
     kernel* ker;
-    vector<process*> pct;
 
 public:
 
@@ -341,7 +330,7 @@ public:
         this->sched = sched;
         this->quantum = quantum;
         cpu = CPU(coreNumber);
-        ker = new kernel(&cpu, &pct, sched, quantum);
+        ker = new kernel(&cpu, sched, quantum);
     }
 
     void run() {
@@ -357,31 +346,29 @@ public:
 
     void createRandomProcess() {
         while (true) {
-            if ((rand() % 10 + 1) % 2 == 0 || pct.size() < 2*coreNumber) {
+            if ((rand() % 10 + 1) % 2 == 0 || ker->pct.size() < 2*coreNumber) {
                 m.lock();
                 for (unsigned int i = 0; i < rand() % 5 + 1; i++)
                 {
-                    pct.emplace_back(new process(id, rand() % 20 + 1));
-                    id++;
+                    ker->createProcess();
 
                 }
-                cout << "CREATING RANDOM THREADS" << " process table size: " << pct.size() << endl;
+                cout << "CREATING RANDOM THREADS" << " process table size: " << ker->pct.size() << endl;
                 m.unlock();
+                this_thread::sleep_for(chrono::seconds(10));
             }
-            this_thread::sleep_for(chrono::seconds(10));
         }
 
     };
 
     void batchProcessInit(unsigned int processInit) {
         for (unsigned int i = 0; i < processInit - 1; i++) {
-            pct.emplace_back(new process(id, rand() % 30 + 1));
-            id++;
+            ker->createProcess();
         }
         for (unsigned int i = 0; i < coreNumber; i++)
         {
-            cpu.corePool.at(i)->p = pct.front();
-            pct.erase(pct.cbegin());
+            cpu.corePool.at(i)->p = ker->pct.front();
+            ker->killProcess(0);
         }
     };
 
@@ -389,6 +376,8 @@ public:
 
 
 int main() {
+
+    
     cout << "SELECIONE O ALGORITMO: 1 - FIFO // 2 - Shortest First // 3 - Round Robin" << "\n";
     unsigned int scheduler = 2;
     cin >> scheduler;
@@ -403,16 +392,14 @@ int main() {
         cin >> quantum;
     }
     
-    
-
     cout << "SELECIONE A QUANTIDADE DE NUCLEOS DO PROCESSADOR: ";
     unsigned int coreNumber = 5;
     cin >> coreNumber;
-
+    
     cout << "inicializando Simulacao" << "\n" << "========================================================" << "\n";
     simulator sim = simulator(coreNumber, processInit, scheduler, quantum);
     sim.run();
 
-
     return 0;
+    
 }
