@@ -104,7 +104,6 @@ public:
         }
     }
 
-
     void removeProcess(unsigned int p) {
         for (int i = 0; i < ready_Queue->size(); i++) {
             if (p == ready_Queue->at(i)->id) {
@@ -113,7 +112,6 @@ public:
         }
     
     }
-
 
     void insertProcess(unsigned int pos, process* p) {
         p->state = READY;
@@ -162,9 +160,10 @@ public:
             cout << "CPU:" << endl;
             cout << endl;
             for (core* c : *corePool) {
-                if (c->p == nullptr) {
-                    continue;
 
+                if (c->p == nullptr) {
+                    process* p1 = nextProcess();
+                    scheduleProcess(p1, c);
                 }
                 
 
@@ -184,7 +183,7 @@ public:
             }
             
             
-            cout << endl << endl << endl << endl << endl;
+            cout << endl << endl << endl;
 
             cout << "PROCESSOS:" << endl;
             cout << endl;
@@ -424,13 +423,6 @@ public:
             ker->createProcess();
 
         }
-        for (unsigned int i = 0; i < coreNumber; i++) {
-
-            process* p1 = ker->pct.at(i);
-            p1->state = RUNNING;
-            cpu.corePool.at(i)->p = p1;
-
-        }
     };
 
 };
@@ -444,7 +436,7 @@ int main() {
     //cin >> scheduler;
 
     //cout << "QUANTIDADE INICIAL DE PROCESSOS: ";
-    unsigned int processInit = 10;
+    unsigned int processInit = 15;
     //cin >> processInit;
 
     unsigned int quantum = 2;
@@ -456,7 +448,7 @@ int main() {
     */
     
     //cout << "SELECIONE A QUANTIDADE DE NUCLEOS DO PROCESSADOR: ";
-    unsigned int coreNumber = 1;
+    unsigned int coreNumber = 2;
     //cin >> coreNumber;
     
     cout << "inicializando Simulacao" << "\n" << "========================================================" << "\n";
