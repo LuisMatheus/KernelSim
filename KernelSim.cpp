@@ -189,8 +189,7 @@ public:
             cout << endl;
 
             for(process* p : *ready_Queue){
-               // cout << "{[ID: " << p->id << "] , [TT: " << p->totalTime << "] , [TR: " << p->remaningTime << "]}" <<"\t";
-                cout << p->id << " , " <<p->remaningTime <<endl;
+                cout << "{[ID: " << p->id << "] , [TT: " << p->totalTime << "] , [TR: " << p->remaningTime << "]}" <<"\n";
             }
 
             cout << endl;
@@ -273,6 +272,17 @@ public:
         
     }
 
+    void roundRobinAux(vector<process*>& vetor) {
+        process* p = vetor[0];
+        for (int i = 0; i < ready_Queue->size() - 1; i++) {
+
+            vetor[i] = vetor[i + 1];
+        }
+        vetor[ready_Queue->size() - 1] = p;
+    
+    
+    }
+
     void algorithmRoundRobin() {
 
        
@@ -287,26 +297,26 @@ public:
         cout << "\n" << "========================================================" << "\n";
 
         for (core* c : *corePool) {
-            if (c->p->state == TERMINATED && pct->empty() == false) {
-                //TODO
+            if (c->p->state == TERMINATED && ready_Queue->empty() == false) {
+
                 process* p1 = nextProcess();
-                pct->emplace_back(descheduleProcess(c));
                 coreAux.at(c->id) = p1->remaningTime;
+                descheduleProcess(c);
                 scheduleProcess(p1, c);
-                //removeProcess(p1);
 
             }
-            if (c->p->remaningTime <= coreAux.at(c->id) - quantum && pct->empty() == false) {
+            if (c->p->remaningTime <= coreAux.at(c->id) - quantum && ready_Queue->empty() == false) {
 
-                cout << endl << "swap: " << c->p->id << endl << endl;
-                //TODO
-                process* p = descheduleProcess(c);
-                p->state = READY;
-                insertProcess(pct->size(),p);
-                process* p1 = nextProcess();
-                coreAux.at(c->id) = p1->remaningTime;
-                scheduleProcess(p1, c);
-                //removeProcess(p1);
+                c->p->state = READY;
+                descheduleProcess(c);
+
+                roundRobinAux(*ready_Queue);
+                
+                process* p = nextProcess();
+
+                coreAux.at(c->id) = p->remaningTime;
+                scheduleProcess(p , c);
+                
 
             }
             
@@ -407,7 +417,7 @@ public:
 
     void createRandomProcess() {
             if ((rand() % 10 + 1) % 2 == 0) {
-                for (unsigned int i = 0; i < rand() % 3 + 1; i++)
+                for (unsigned int i = 0; i < rand() % 5 + 1; i++)
                 {
                     
                     ker->createProcess();
@@ -427,29 +437,28 @@ public:
 
 };
 
-
 int main() {
 
     
-    //cout << "SELECIONE O ALGORITIMO: 1 - FIFO // 2 - Shortest First // 3 - Round Robin" << "\n";
-    unsigned int scheduler = 2;
-    //cin >> scheduler;
+    cout << "SELECIONE O ALGORITIMO: 1 - FIFO // 2 - Shortest First // 3 - Round Robin" << "\n";
+    unsigned int scheduler = 3;
+    cin >> scheduler;
 
-    //cout << "QUANTIDADE INICIAL DE PROCESSOS: ";
+    cout << "QUANTIDADE INICIAL DE PROCESSOS: ";
     unsigned int processInit = 15;
-    //cin >> processInit;
+    cin >> processInit;
 
     unsigned int quantum = 2;
-    /*
+    
     if (scheduler == 3) {
         cout << "SELECIONE O QUANTUM: ";
         cin >> quantum;
     }
-    */
     
-    //cout << "SELECIONE A QUANTIDADE DE NUCLEOS DO PROCESSADOR: ";
+    
+    cout << "SELECIONE A QUANTIDADE DE NUCLEOS DO PROCESSADOR: ";
     unsigned int coreNumber = 2;
-    //cin >> coreNumber;
+    cin >> coreNumber;
     
     cout << "inicializando Simulacao" << "\n" << "========================================================" << "\n";
     simulator sim = simulator(coreNumber, processInit, scheduler, quantum);
