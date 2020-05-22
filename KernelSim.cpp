@@ -19,7 +19,7 @@ class memoryBlock {
     unsigned int totalBlockSize;
     unsigned int occupiedSize;
     string blockAdress;
-    memoryBlock* nextFreeBlock;
+    memoryBlock* nextFreeBlocks;
 
 };
 
