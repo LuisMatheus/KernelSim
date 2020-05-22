@@ -394,7 +394,6 @@ public:
     void run() {
         thread schThread(&scheduler::run, schd);
         this_thread::sleep_for(chrono::seconds(1));
-        Thread memThread(&memoryManager::)
         while (true) {
 
             for (process* p : pct) {
