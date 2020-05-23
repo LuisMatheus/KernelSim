@@ -18,7 +18,7 @@ unsigned int id = 1;
 class memoryBlock {
     unsigned int totalBlockSize;
     unsigned int occupiedSize;
-    string blockAdress;
+    unsigned int blockAdress;
     memoryBlock* nextFreeBlocks;
 
 };
@@ -34,17 +34,20 @@ public:
 
     unsigned int totalMemoryUsed;
 
-    vector<memoryBlock*> memoryPointers;
+    memoryBlock* memoryPointer;
 
-    process(int id, int time) {
+    process(int id, int time,unsigned int totalMemoryUsed) {
         this->id = id;
         this->totalTime = time;
         this->remaningTime = this->totalTime;
         this->state = READY;
+        this->totalMemoryUsed = totalMemoryUsed;
+        generateRandomStaticMemoryCall(totalMemoryUsed);
+        
     }
 
-    bool generateRandomStaticMemoryCall() {
-    
+    bool generateRandomStaticMemoryCall(unsigned int totalMemoryUsed) {
+        
     }
 
     bool generateRandomDynamicMemoryCall() {
@@ -418,15 +421,19 @@ public:
     }
 
     void createProcess() {
-        process* p = new process(id, rand() % 30 + 1);
+        process* p = new process(id, rand() % 30 + 1, rand() % 1024 + 1);
         pct.emplace_back(p);
         schd.ready_Queue->emplace_back(p);
         id++;
     }
 
-    void memoryAllocation() {}
+    memoryBlock memoryAllocation(unsigned int SIZE) {
+        return memMan.malloc(SIZE);
+    }
 
-    void freeMemory() {}
+    bool freeMemory(memoryBlock MEM) {
+    
+    }
 
 };
 
