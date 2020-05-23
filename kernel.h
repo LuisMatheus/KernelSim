@@ -1,7 +1,7 @@
 #pragma once
+#include"scheduler.h"
 #include"process.h"
 #include"cpu.h"
-#include"scheduler.h"
 #include"memoryManager.h"
 
 
@@ -10,10 +10,16 @@
 
 using namespace std;
 
+class scheduler;
+
+class process;
+
+class CPU;
+
 class kernel {
 private:
 
-    unsigned int id;
+    unsigned int idCounter;
 
     CPU* cpu;
     scheduler schd;

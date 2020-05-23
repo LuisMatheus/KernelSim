@@ -1,6 +1,9 @@
 #pragma once
 #include "memoryBlock.h"
+#include "kernel.h"
 #include "Definer.h"
+
+class kernel;
 
 class process {
 
@@ -15,7 +18,9 @@ public:
 
     memoryBlock* memoryPointer;
 
-    process(int id, int time, unsigned int totalMemoryUsed);
+    kernel* ker;
+
+    process(int id, int time, unsigned int totalMemoryUsed, kernel* ker);
 
     bool generateRandomStaticMemoryCall(unsigned int totalMemoryUsed);
 

@@ -1,12 +1,17 @@
 #pragma once
 #include"process.h"
 #include"core.h"
+#include"kernel.h"
 
 #include<thread>
 #include<iostream>
 #include<vector>
 
 using namespace std;
+
+class core;
+class process;
+
 
 class scheduler {
 public:

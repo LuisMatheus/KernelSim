@@ -1,7 +1,9 @@
 #include "kernel.h"
 
+class scheduler;
+
 kernel::kernel(CPU* cpu, unsigned int sched, unsigned quantum, int memAlockAlgo, unsigned int totalInstalledMemory, unsigned int numberQuickList, unsigned int numberMemoryCalls){
-    id = 1;
+    idCounter = 1;
     this->cpu = cpu;
     schd = scheduler(&encerrados, &cpu->corePool, sched, quantum);
     memMan = memoryManager(memAlockAlgo, totalInstalledMemory, numberQuickList, numberMemoryCalls);
@@ -34,10 +36,10 @@ void kernel::killProcess(int id){
 }
 
 void kernel::createProcess(){
-    process* p = new process(id, rand() % 30 + 1, rand() % 1024 + 1);
+    process* p = new process(idCounter, rand() % 30 + 1, rand() % 1024 + 1,this);
     pct.emplace_back(p);
     schd.ready_Queue->emplace_back(p);
-    id++;
+    idCounter++;
 }
 
 memoryBlock kernel::memoryAllocation(unsigned int SIZE){

@@ -1,5 +1,7 @@
 #include "scheduler.h"
 
+class core;
+
 scheduler::scheduler()
 {
 }

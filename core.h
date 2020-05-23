@@ -1,6 +1,8 @@
 #pragma once
 #include "process.h"
 
+class process;
+
 class core {
 public:
 

@@ -5,7 +5,7 @@ simulator::simulator(unsigned int coreNumber, unsigned int processInit, unsigned
 
     this->processInit = processInit;
     cpu = CPU(coreNumber);
-    ker = new kernel(&cpu, sched, quantum, memAlockAlgo, totalInstalledMemory, numberQuickList, numberMemoryCalls);
+    ker = new kernel(&cpu,sched,quantum,memAlockAlgo,totalInstalledMemory,numberQuickList,numberMemoryCalls);
 }
 
 void simulator::run()
