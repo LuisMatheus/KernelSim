@@ -1,20 +1,32 @@
 #include <iostream>
+#include <list>
+#include <thread>
+#include <vector>
+#include <ctime>
+#include <cstdlib> 
 
-#include"simulador.h"
+#define READY 0
+#define RUNNING 1
+#define TERMINATED -1
+#define ABORTED 2
 
 using namespace std;
 
-<<<<<<< HEAD
-=======
 //process id counter
 unsigned int id = 1;
 
 class memoryBlock {
+public:
     unsigned int totalBlockSize;
     unsigned int occupiedSize;
-    string blockAdress;
-    memoryBlock* nextFreeBlocks;
+    unsigned int blockAdress;
+    memoryBlock* nextFreeBlock;
 
+    memoryBlock(unsigned int totalBlockSize, unsigned int blockAdress) {
+        this->totalBlockSize = totalBlockSize;
+        this->occupiedSize = totalBlockSize;
+        this->blockAdress = blockAdress;
+    }
 };
 
 class process {
@@ -28,31 +40,34 @@ public:
 
     unsigned int totalMemoryUsed;
 
-    vector<memoryBlock*> memoryPointers;
+    vector<memoryBlock*> memoryPointer;
 
-    process(int id, int time) {
+    process(int id, int time, unsigned int totalMemoryUsed) {
         this->id = id;
         this->totalTime = time;
         this->remaningTime = this->totalTime;
         this->state = READY;
+        this->totalMemoryUsed = totalMemoryUsed;
+
     }
 
-    bool generateRandomStaticMemoryCall() {
-    
+    void generateRandomStaticMemoryCall(memoryBlock* adress) {
+        memoryPointer.emplace_back(adress);
     }
 
-    bool generateRandomDynamicMemoryCall() {
-    
+    void generateRandomDynamicMemoryCall(memoryBlock* m) {
+        totalMemoryUsed += m->occupiedSize;
+        memoryPointer.emplace_back(m);
     }
 
 };
 
 class memoryManager {
 public:
-    int allocationAlgorithim;
-    unsigned int totalMemory;
-    unsigned int memoryOverhead;
-    unsigned int occupiedMemory;
+    int allocationAlgorithim = 0;
+    unsigned int totalMemory = 0;
+    unsigned int memoryOverhead = 0;
+    unsigned int occupiedMemory = 0;
 
     //statistics table
     //quickfit free blocks
@@ -60,8 +75,10 @@ public:
     unsigned int minAmountCalls;
     unsigned int numberQuickLists;
 
-    vector<memoryBlock> memory;
-    memoryBlock* freeBlocksList;
+    unsigned int adrCounter = 1;
+
+    vector<memoryBlock*> memory;
+    memoryBlock* freeBlocksList = nullptr;
 
     memoryManager() {}
 
@@ -72,37 +89,103 @@ public:
         this->minAmountCalls = numberMemoryCalls;
     }
 
-    memoryBlock malloc(unsigned int SIZE) {
-
-    }
-
-    void free(memoryBlock mem) {
-
-    }
-
-    bool checkFreeMemory(unsigned int SIZE) {}
-
-    void setAllocationAlgorithim() {
-        switch (allocationAlgorithim){
-        case 1:
-            firstFit();
-            break;
-        case 2:
-            bestFit();
-            break;
-        case 3:
-            quickFit();
-            break;
-        default:
-            break;
+    memoryBlock* malloc(unsigned int SIZE) {
+        if (checkFreeMemory(SIZE)) {
+            return setAllocationAlgorithim(SIZE);
+        }
+        else {
+            return NULL;
         }
     }
 
-    void firstFit() {}
+    void free(memoryBlock* mem) {
+        occupiedMemory -= mem->occupiedSize;
+        mem->occupiedSize = 0;
+        mem->nextFreeBlock = nullptr;
+        memoryBlock* m = freeBlocksList;
+        if (m != nullptr) {
+            while (m->nextFreeBlock != nullptr) {
+                m = m->nextFreeBlock;
+            }
+            m->nextFreeBlock = mem;
+        }
+        else {
+            freeBlocksList = mem;
+        }
+    }
 
-    void bestFit() {}
+    bool checkFreeMemory(unsigned int SIZE) {
+        if (occupiedMemory - totalMemory >= SIZE) {
+            return true;
+        }
+        else {
+            memoryBlock* nextBl = freeBlocksList;
+            while (nextBl != nullptr) {
+                if (nextBl->totalBlockSize >= SIZE ) {
+                    return true;
+                }
+                nextBl = nextBl->nextFreeBlock;
+            }
+            return false;
+        }
+    }
 
-    void quickFit() {}
+    memoryBlock* setAllocationAlgorithim(unsigned int SIZE) {
+        switch (allocationAlgorithim) {
+        case 1:
+            return firstFit(SIZE);
+        case 2:
+            return bestFit(SIZE);
+        case 3:
+            return quickFit(SIZE);
+        default:
+            return NULL;
+        }
+    }
+
+    memoryBlock* firstFit(unsigned int SIZE) {
+        memoryBlock* m = freeBlocksList;
+        
+        while (m != nullptr) {
+
+            if (m->totalBlockSize >= SIZE) {
+
+                if (m == freeBlocksList) {
+                    m->occupiedSize = SIZE;
+                    occupiedMemory += SIZE;
+                    freeBlocksList = m->nextFreeBlock;
+                    m->nextFreeBlock = nullptr;
+                    return m;
+                }
+
+                memoryBlock* aux = freeBlocksList;
+
+                while (aux->nextFreeBlock->blockAdress != m->blockAdress) {
+                    aux = aux->nextFreeBlock;
+                }
+                aux->nextFreeBlock = m->nextFreeBlock;
+                occupiedMemory += SIZE;
+                m->occupiedSize = SIZE;
+                m->nextFreeBlock = nullptr;
+                return m;
+            }
+            m = m->nextFreeBlock;
+        }
+        
+        if (occupiedMemory + SIZE <= totalMemory) {
+            occupiedMemory += SIZE;
+            m = new memoryBlock(SIZE , adrCounter++);
+            memory.emplace_back(m);
+            return m;
+        }
+        else {
+            return nullptr;
+        }
+    }
+
+    memoryBlock* bestFit(unsigned int SIZE) { return NULL; }
+
+    memoryBlock* quickFit(unsigned int SIZE) { return NULL; }
 
 };
 
@@ -121,7 +204,7 @@ class CPU {
 public:
 
     vector<core*> corePool;
-    
+
     CPU() {}
 
     CPU(unsigned int coreNumber) {
@@ -143,10 +226,10 @@ public:
 
     unsigned int schedul;
     unsigned int quantum;
-  
+
     scheduler() {}
 
-    scheduler(vector<process*>* encerrados,  vector<core*>* corePool, unsigned int schedul, unsigned int quantum) {
+    scheduler(vector<process*>* encerrados, vector<core*>* corePool, unsigned int schedul, unsigned int quantum) {
         this->encerrados = encerrados;
         this->corePool = corePool;
         this->schedul = schedul;
@@ -175,10 +258,10 @@ public:
     void removeProcess(int id) {
         for (int i = 0; i < ready_Queue->size(); i++) {
             if (ready_Queue->at(i)->id == id) {
-                ready_Queue->erase(ready_Queue->begin()+i);
+                ready_Queue->erase(ready_Queue->begin() + i);
             }
         }
-    
+
     }
 
     void insertionSort(vector<process*>& vetor) {
@@ -198,18 +281,15 @@ public:
     }
 
     void run() {
-        
+
         while (true) {
 
-            cout << "CPU:" << endl;
-            cout << endl;
             for (core* c : *corePool) {
 
                 if (c->p == nullptr) {
                     process* p1 = nextProcess();
                     scheduleProcess(p1, c);
                 }
-                
 
                 c->p->remaningTime--;
 
@@ -217,40 +297,10 @@ public:
                     c->p->state = TERMINATED;
                     cout << "CORE: " << c->id << " PROCESSO ENCERRADO: " << c->p->id << "\t";
                     continue;
-                    
+
                 }
 
-                
-                
-                cout << "CORE: " << c->id << " P: " << c->p->id << " TR: " << c->p->remaningTime << "\t";
             }
-            
-            
-            cout << endl << endl << endl;
-
-            cout << "PROCESSOS:" << endl;
-            cout << endl;
-
-            for(process* p : *ready_Queue){
-                cout << "{[ID:" << p->id << "] , [TT:" << p->totalTime << "] , [TR:" << p->remaningTime <<"] , [STATUS:" <<p->state << "]}" <<"\n";
-            }
-
-            cout << endl;
-            cout << endl;
-            cout << endl;
-
-            
-            cout << "ENCERRADOS:" << endl;
-            cout << endl;
-
-            for (process* p : *encerrados) {
-                cout << "ID: " << p->id << "\t";;
-            }
-
-            cout << endl;
-            cout << endl;
-            cout << endl;
-            
 
             this_thread::sleep_for(chrono::seconds(2));
 
@@ -258,7 +308,7 @@ public:
 
         }
 
-        
+
     }
 
     void setScheduleAlgorithm() {
@@ -279,31 +329,27 @@ public:
 
     void algorithmFIFO() {
 
-        cout << "\n" << "========================================================" << "\n";
-
         for (core* c : *corePool) {
             if (c->p->state == TERMINATED) {
 
                 process* p1 = nextProcess();
                 descheduleProcess(c);
-                scheduleProcess(p1,c);
-                
+                scheduleProcess(p1, c);
+
 
             }
         }
-        
+
 
     }
 
     void algorithmShortestFirst() {
 
-        cout << "\n" << "========================================================" << "\n";
-
         insertionSort(*ready_Queue);
 
         for (core* c : *corePool) {
             if (c->p->state == TERMINATED) {
-                
+
                 process* p1 = nextProcess();
                 descheduleProcess(c);
                 scheduleProcess(p1, c);
@@ -321,7 +367,7 @@ public:
             vetor[i] = vetor[i + 1];
         }
         vetor[ready_Queue->size() - 1] = p;
-    
+
     }
 
     void algorithmRoundRobin() {
@@ -333,8 +379,6 @@ public:
 
             }
         }
-        
-        cout << "\n" << "========================================================" << "\n";
 
         for (core* c : *corePool) {
             if (c->p->state == TERMINATED) {
@@ -351,17 +395,17 @@ public:
                 descheduleProcess(c);
 
                 roundRobinAux(*ready_Queue);
-                
+
                 process* p = nextProcess();
 
                 coreAux.at(c->id) = p->remaningTime;
-                scheduleProcess(p , c);
-                
+                scheduleProcess(p, c);
+
 
             }
-            
+
         }
-            
+
     }
 
 };
@@ -372,39 +416,74 @@ private:
     CPU* cpu;
     scheduler schd;
     memoryManager memMan;
-    
+
 public:
 
     vector<process*> pct;
 
     vector<process*> encerrados;
 
-    kernel(CPU* cpu, unsigned  int sched, unsigned quantum , int memAlockAlgo, unsigned int totalInstalledMemory, unsigned int numberQuickList, unsigned int numberMemoryCalls) {
+    kernel(CPU* cpu, unsigned  int sched, unsigned quantum, int memAlockAlgo, unsigned int totalInstalledMemory, unsigned int numberQuickList, unsigned int numberMemoryCalls) {
         this->cpu = cpu;
-        schd = scheduler(&encerrados , &cpu->corePool, sched, quantum);
+        schd = scheduler(&encerrados, &cpu->corePool, sched, quantum);
         memMan = memoryManager(memAlockAlgo, totalInstalledMemory, numberQuickList, numberMemoryCalls);
     };
 
     void run() {
         thread schThread(&scheduler::run, schd);
-        this_thread::sleep_for(chrono::seconds(1));
+        this_thread::sleep_for(chrono::seconds(2));
         while (true) {
 
+            cout << "PROCESSOS:" << endl;
+
+            for (process* p : *schd.ready_Queue) {
+                cout << "{[ID:" << p->id << "] , [TT:" << p->totalTime << "] , [TR:" << p->remaningTime << "] , [STATUS:" << p->state << "] , [MEMORY:" << p->totalMemoryUsed <<"]}" << "\n";
+            }
+
+            cout << endl;
+
+            cout << "MEMORIA:" << endl;
+            cout << "TOTAL: " << memMan.totalMemory << "\t" << "OCUPADO: " << memMan.occupiedMemory << "\t" <<"DISPONIVEL: " << (memMan.totalMemory - memMan.occupiedMemory) << endl;
+            for (memoryBlock* m : memMan.memory) {
+                cout << "[" << m->blockAdress << "," << m->totalBlockSize << "," << m->occupiedSize << "]" << " ";
+            }
+
+            cout << endl << endl;
+
+            cout << "ENCERRADOS:" << endl;
+
+            for (process* p : encerrados) {
+                cout << "ID: " << p->id << "  ";;
+            }
+
+            cout << endl;
+            cout << endl;
+            cout << endl;
+
+
+
             for (process* p : pct) {
+                                
                 if (p->state == TERMINATED) {
                     killProcess(p->id);
                 }
+
+                if (rand() % 100 + 1 <= 10) {
+                    p->generateRandomDynamicMemoryCall(memoryAllocation(rand() % 200 + 1));
+                }
             }
 
-            this_thread::sleep_for(chrono::milliseconds(500));
+            this_thread::sleep_for(chrono::seconds(2));
         }
         schThread.join();
     }
 
     void killProcess(int id) {
-        for (int i = 0; i < pct.size(); i ++) {
+        for (int i = 0; i < pct.size(); i++) {
             if (pct.at(i)->id == id) {
-                encerrados.emplace_back(pct.at(i));
+                process* p = pct.at(i);
+                encerrados.emplace_back(p);
+                freeMemory(p);
                 pct.erase(pct.begin() + i);
                 schd.removeProcess(id);
             }
@@ -412,15 +491,30 @@ public:
     }
 
     void createProcess() {
-        process* p = new process(id, rand() % 30 + 1);
-        pct.emplace_back(p);
-        schd.ready_Queue->emplace_back(p);
-        id++;
+        process* p = new process(id++, rand() % 30 + 1, rand() % 1024 + 1);
+        if (memMan.checkFreeMemory(p->totalMemoryUsed)) {
+            p->generateRandomStaticMemoryCall(memoryAllocation(p->totalMemoryUsed));
+            pct.emplace_back(p);
+            schd.ready_Queue->emplace_back(p);
+        }
+        else {
+            p->state = ABORTED;
+            cout << "SYSTEM OUT OF MEMORY ABORTING PROCESS: " << p->id;
+            encerrados.emplace_back(p);
+        }
+              
     }
 
-    void memoryAllocation() {}
+    memoryBlock* memoryAllocation(unsigned int SIZE) {
+        return memMan.malloc(SIZE);
+    }
 
-    void freeMemory() {}
+    void freeMemory(process* p) {
+        for (memoryBlock* m : p->memoryPointer) {
+            memMan.free(m);
+        }
+        p->memoryPointer.clear();
+    }
 
 };
 
@@ -452,15 +546,14 @@ public:
     };
 
     void createRandomProcess() {
-            if ((rand() % 10 + 1) % 2 == 0) {
-                for (unsigned int i = 0; i < rand() % 5 + 1; i++)
-                {
-                    
-                    ker->createProcess();
+        if ((rand() % 10 + 1) % 2 == 0) {
+            for (unsigned int i = 0; i < rand() % 5 + 1; i++)
+            {
 
-                }
-                //cout << "CREATING RANDOM THREADS" << " process table size: " << ker->pct.size() << endl;
+                ker->createProcess();
+
             }
+        }
     };
 
     void batchProcessInit(unsigned int processInit) {
@@ -473,10 +566,9 @@ public:
 
 };
 
->>>>>>> parent of 99e504b... update
 int main() {
 
-    
+    /*
     cout << "SELECIONE O ALGORITIMO: 1 - FIFO // 2 - Shortest First // 3 - Round Robin" << "\n";
     unsigned int scheduler = 3;
     cin >> scheduler;
@@ -486,21 +578,21 @@ int main() {
     cin >> processInit;
 
     unsigned int quantum = 2;
-    
+
     if (scheduler == 3) {
         cout << "SELECIONE O QUANTUM: ";
         cin >> quantum;
     }
-    
-    
+
+
     cout << "SELECIONE A QUANTIDADE DE NUCLEOS DO PROCESSADOR: ";
     unsigned int coreNumber = 2;
     cin >> coreNumber;
-    
+    */
     cout << "inicializando Simulacao" << "\n" << "========================================================" << "\n";
-    simulator sim = simulator(coreNumber, processInit, scheduler, quantum,1,999999,15,25);
+    simulator sim = simulator(2, 20, 1, 0, 1, 999999, 15, 25);
     sim.run();
 
     return 0;
-    
+
 }
