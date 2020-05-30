@@ -12,9 +12,6 @@
 
 using namespace std;
 
-//process id counter
-unsigned int id = 1;
-
 class memoryBlock {
 public:
     unsigned int totalBlockSize;
@@ -94,7 +91,7 @@ public:
             return setAllocationAlgorithim(SIZE);
         }
         else {
-            return NULL;
+            return nullptr;
         }
     }
 
@@ -144,46 +141,92 @@ public:
     }
 
     memoryBlock* firstFit(unsigned int SIZE) {
-        memoryBlock* m = freeBlocksList;
-        
-        while (m != nullptr) {
-
-            if (m->totalBlockSize >= SIZE) {
-
-                if (m == freeBlocksList) {
-                    m->occupiedSize = SIZE;
-                    occupiedMemory += SIZE;
-                    freeBlocksList = m->nextFreeBlock;
-                    m->nextFreeBlock = nullptr;
-                    return m;
-                }
-
-                memoryBlock* aux = freeBlocksList;
-
-                while (aux->nextFreeBlock->blockAdress != m->blockAdress) {
-                    aux = aux->nextFreeBlock;
-                }
-                aux->nextFreeBlock = m->nextFreeBlock;
-                occupiedMemory += SIZE;
-                m->occupiedSize = SIZE;
-                m->nextFreeBlock = nullptr;
-                return m;
-            }
-            m = m->nextFreeBlock;
-        }
-        
+        memoryBlock* m;
         if (occupiedMemory + SIZE <= totalMemory) {
             occupiedMemory += SIZE;
-            m = new memoryBlock(SIZE , adrCounter++);
+            m = new memoryBlock(SIZE, adrCounter++);
             memory.emplace_back(m);
             return m;
         }
         else {
+            m = freeBlocksList;
+
+            while (m != nullptr) {
+
+                if (m->totalBlockSize >= SIZE) {
+
+                    if (m == freeBlocksList) {
+                        m->occupiedSize = SIZE;
+                        occupiedMemory += SIZE;
+                        freeBlocksList = m->nextFreeBlock;
+                        m->nextFreeBlock = nullptr;
+                        return m;
+                    }
+
+                    memoryBlock* aux = freeBlocksList;
+
+                    while (aux->nextFreeBlock->blockAdress != m->blockAdress) {
+                        aux = aux->nextFreeBlock;
+                    }
+                    aux->nextFreeBlock = m->nextFreeBlock;
+                    occupiedMemory += SIZE;
+                    m->occupiedSize = SIZE;
+                    m->nextFreeBlock = nullptr;
+                    return m;
+                }
+                m = m->nextFreeBlock;
+            }
+            return nullptr;
+        }
+        
+    }
+
+    memoryBlock* bestFit(unsigned int SIZE) { 
+        memoryBlock* m = freeBlocksList;
+        
+        int count = INT32_MAX;
+        memoryBlock* bf = nullptr;
+        int test;
+        while (m != nullptr) {
+            test = m->totalBlockSize - SIZE;
+            if (test >= 0 && test <= count ) {
+                count = test;
+                bf = m;
+            }
+            m = m->nextFreeBlock;
+        }
+
+        if (bf != nullptr) {
+
+            if (bf == freeBlocksList) {
+                bf->occupiedSize = SIZE;
+                occupiedMemory += SIZE;
+                freeBlocksList = bf->nextFreeBlock;
+                bf->nextFreeBlock = nullptr;
+                return bf;
+            }
+            else {
+                m = freeBlocksList;
+                while (m->nextFreeBlock->blockAdress != bf->blockAdress) {
+                    m = m->nextFreeBlock;
+                }
+
+                m->nextFreeBlock = bf->nextFreeBlock;
+                occupiedMemory += SIZE;
+                bf->occupiedSize = SIZE;
+                bf->nextFreeBlock = nullptr;
+                return bf;
+            }
+
+        }else if (bf == nullptr && occupiedMemory + SIZE < totalMemory) {
+            occupiedMemory += SIZE;
+            m = new memoryBlock(SIZE, adrCounter++);
+            memory.emplace_back(m);
+            return m;
+        }else {
             return nullptr;
         }
     }
-
-    memoryBlock* bestFit(unsigned int SIZE) { return NULL; }
 
     memoryBlock* quickFit(unsigned int SIZE) { return NULL; }
 
@@ -295,17 +338,15 @@ public:
 
                 if (c->p->remaningTime == 0) {
                     c->p->state = TERMINATED;
-                    cout << "CORE: " << c->id << " PROCESSO ENCERRADO: " << c->p->id << "\t";
                     continue;
 
                 }
 
             }
 
-            this_thread::sleep_for(chrono::seconds(2));
-
             setScheduleAlgorithm();
 
+            this_thread::sleep_for(chrono::seconds(2));
         }
 
 
@@ -417,6 +458,8 @@ private:
     scheduler schd;
     memoryManager memMan;
 
+    unsigned int id = 1;
+
 public:
 
     vector<process*> pct;
@@ -431,7 +474,7 @@ public:
 
     void run() {
         thread schThread(&scheduler::run, schd);
-        this_thread::sleep_for(chrono::seconds(2));
+        this_thread::sleep_for(chrono::milliseconds(500));
         while (true) {
 
             cout << "PROCESSOS:" << endl;
@@ -443,7 +486,7 @@ public:
             cout << endl;
 
             cout << "MEMORIA:" << endl;
-            cout << "TOTAL: " << memMan.totalMemory << "\t" << "OCUPADO: " << memMan.occupiedMemory << "\t" <<"DISPONIVEL: " << (memMan.totalMemory - memMan.occupiedMemory) << endl;
+            cout << "TOTAL: " << memMan.totalMemory << "\t" << "OCUPADO: " << memMan.occupiedMemory << "\t" <<"DISPONIVEL: " << memMan.totalMemory - memMan.occupiedMemory << endl;
             for (memoryBlock* m : memMan.memory) {
                 cout << "[" << m->blockAdress << "," << m->totalBlockSize << "," << m->occupiedSize << "]" << " ";
             }
@@ -453,7 +496,7 @@ public:
             cout << "ENCERRADOS:" << endl;
 
             for (process* p : encerrados) {
-                cout << "ID: " << p->id << "  ";;
+                cout << "[ID: " << p->id <<","<<p->state <<"]  ";;
             }
 
             cout << endl;
@@ -468,8 +511,15 @@ public:
                     killProcess(p->id);
                 }
 
-                if (rand() % 100 + 1 <= 10) {
-                    p->generateRandomDynamicMemoryCall(memoryAllocation(rand() % 200 + 1));
+                if (rand() % 100 + 1 <= 5) {
+                    memoryBlock* m = memoryAllocation(rand() % 200 + 1);
+                    if (m!=nullptr) {
+                        p->generateRandomDynamicMemoryCall(m);
+                    }
+                    else {
+                        cout << "OUT OF MEMORY: FAILED DYNAMIC CALL";
+                    }
+                    
                 }
             }
 
@@ -492,21 +542,25 @@ public:
 
     void createProcess() {
         process* p = new process(id++, rand() % 30 + 1, rand() % 1024 + 1);
-        if (memMan.checkFreeMemory(p->totalMemoryUsed)) {
-            p->generateRandomStaticMemoryCall(memoryAllocation(p->totalMemoryUsed));
+        p->generateRandomStaticMemoryCall(memoryAllocation(p->totalMemoryUsed));
+        if (p->memoryPointer.at(0) != nullptr) {
             pct.emplace_back(p);
             schd.ready_Queue->emplace_back(p);
         }
         else {
             p->state = ABORTED;
-            cout << "SYSTEM OUT OF MEMORY ABORTING PROCESS: " << p->id;
+            cout << "||||||SYSTEM OUT OF MEMORY ABORTING PROCESS: " << p->id;
             encerrados.emplace_back(p);
         }
               
     }
 
     memoryBlock* memoryAllocation(unsigned int SIZE) {
-        return memMan.malloc(SIZE);
+        if (memMan.checkFreeMemory(SIZE)) {
+            return memMan.malloc(SIZE);
+        }
+        return nullptr;
+        
     }
 
     void freeMemory(process* p) {
@@ -539,7 +593,7 @@ public:
         thread kert(&kernel::run, ker);
         while (true) {
             createRandomProcess();
-            this_thread::sleep_for(chrono::seconds(10));
+            this_thread::sleep_for(chrono::seconds(8));
         };
         kert.join();
 
@@ -590,7 +644,7 @@ int main() {
     cin >> coreNumber;
     */
     cout << "inicializando Simulacao" << "\n" << "========================================================" << "\n";
-    simulator sim = simulator(2, 20, 1, 0, 1, 999999, 15, 25);
+    simulator sim = simulator(1, 15, 1, 2, 1, 10000, 15, 25);
     sim.run();
 
     return 0;
