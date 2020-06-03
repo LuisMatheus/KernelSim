@@ -1,0 +1,2 @@
+C:\Users\Matheus\source\repos\KernelSim\x64\Debug\KernelSim.exe
+C:\Users\Matheus\source\repos\KernelSim\x64\Debug\KernelSim.pdb

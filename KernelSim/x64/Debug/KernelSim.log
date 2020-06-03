@@ -1,0 +1,5 @@
+﻿  KernelSim.cpp
+C:\Users\Matheus\source\repos\KernelSim\KernelSim.cpp(339,53): warning C4018: '>': signed/unsigned mismatch
+C:\Users\Matheus\source\repos\KernelSim\KernelSim.cpp(626,40): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Matheus\source\repos\KernelSim\KernelSim.cpp(321): warning C4715: 'scheduler::nextProcess': not all control paths return a value
+  KernelSim.vcxproj -> C:\Users\Matheus\source\repos\KernelSim\x64\Debug\KernelSim.exe
