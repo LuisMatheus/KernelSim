@@ -19,7 +19,26 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Core.cpp" />
+    <ClCompile Include="CPU.cpp" />
+    <ClCompile Include="Kernel.cpp" />
     <ClCompile Include="KernelSim.cpp" />
+    <ClCompile Include="MemoryBlock.cpp" />
+    <ClCompile Include="MemoryManager.cpp" />
+    <ClCompile Include="Process.cpp" />
+    <ClCompile Include="Scheduler.cpp" />
+    <ClCompile Include="Simulador.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Core.h" />
+    <ClInclude Include="CPU.h" />
+    <ClInclude Include="Defines.h" />
+    <ClInclude Include="Kernel.h" />
+    <ClInclude Include="MemoryBlock.h" />
+    <ClInclude Include="MemoryManager.h" />
+    <ClInclude Include="Process.h" />
+    <ClInclude Include="Scheduler.h" />
+    <ClInclude Include="Simulador.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
